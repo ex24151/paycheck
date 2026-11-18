@@ -6,6 +6,10 @@ See **[WORKFLOW.md](WORKFLOW.md)** for the full payment workflow and the busines
 
 ## Run it
 
+**Easiest (Windows):** download the ZIP from GitHub, unzip it, and double-click **`start.bat`**. It installs everything the first time and opens the app in your browser. On Mac or Linux, run `bash start.sh`.
+
+**Manual:**
+
 ```bash
 cd paycheck
 pip install -r requirements.txt
