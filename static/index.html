@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PayCheck · Stop fake invoices</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230f172a'/><path d='M9 16.5l4.5 4.5L23 11' stroke='%2334d399' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M9 16.5l4.5 4.5L23 11" /></svg>
+      </span>
+      <span>PayCheck</span>
+    </div>
+    <nav>
+      <a href="#queue" data-view="queue" class="active">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Payment queue
+      </a>
+      <a href="#suppliers" data-view="suppliers">
+        <svg viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13M9 21v-7h6v7"/></svg>Suppliers
+      </a>
+      <a href="#fraud" data-view="fraud">
+        <svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>Fraud list
+      </a>
+      <a href="#how" data-view="how">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>How it works
+      </a>
+    </nav>
+    <div class="ai-pill" id="aiStatus">AI analyst: checking…</div>
+  </aside>
+
+  <main>
+    <!-- QUEUE -->
+    <section class="view" id="view-queue">
+      <header class="page-head">
+        <div>
+          <h1>Payment queue</h1>
+          <p class="sub">Every invoice is checked before anyone can pay it.</p>
+        </div>
+        <button class="btn primary" id="newBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Check an invoice
+        </button>
+      </header>
+
+      <div class="kpis" id="kpis"></div>
+
+      <div class="card">
+        <div class="tabs" id="filters">
+          <button data-f="all" class="active">All</button>
+          <button data-f="red">On hold</button>
+          <button data-f="amber">Verify</button>
+          <button data-f="green">Ready</button>
+          <button data-f="done">Done</button>
+        </div>
+        <table class="table">
+          <thead><tr><th>Supplier</th><th>Invoice</th><th class="num">Amount</th><th>Risk</th><th>Status</th><th>Received</th></tr></thead>
+          <tbody id="queueBody"></tbody>
+        </table>
+        <div class="empty" id="queueEmpty" hidden>Nothing here. 🎉</div>
+      </div>
+    </section>
+
+    <!-- SUPPLIERS -->
+    <section class="view" id="view-suppliers" hidden>
+      <header class="page-head">
+        <div>
+          <h1>Suppliers</h1>
+          <p class="sub">Your source of truth. Bank details and phone numbers here come from trusted channels, never from an invoice.</p>
+        </div>
+        <button class="btn primary" id="newSupplierBtn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add supplier</button>
+      </header>
+      <div class="card">
+        <table class="table">
+          <thead><tr><th>Name</th><th>Country</th><th>Email domain</th><th>Verified IBAN</th><th>Call-back number</th><th class="num">Invoices</th></tr></thead>
+          <tbody id="supplierBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FRAUD LIST -->
+    <section class="view" id="view-fraud" hidden>
+      <header class="page-head">
+        <div>
+          <h1>Fraud list</h1>
+          <p class="sub">Accounts reported in fraud attempts. Any invoice asking for payment to one of these is stopped automatically.</p>
+        </div>
+      </header>
+      <div class="card">
+        <table class="table">
+          <thead><tr><th>IBAN</th><th>Reason</th><th>Reported</th></tr></thead>
+          <tbody id="fraudBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- HOW -->
+    <section class="view" id="view-how" hidden>
+      <header class="page-head"><div><h1>How it works</h1><p class="sub">The workflow your finance team follows for every invoice.</p></div></header>
+      <ol class="flow">
+        <li><b>1 · Receive</b><span>Invoice arrives by email, upload, or accounting-system sync.</span></li>
+        <li><b>2 · Check</b><span>Bank details, sender domain, amount history, wording, sanctions, plus a review by the AI analyst.</span></li>
+        <li><b>3 · Score</b><span><i class="dot green"></i>Ready to pay &nbsp; <i class="dot amber"></i>Verify first &nbsp; <i class="dot red"></i>On hold</span></li>
+        <li><b>4 · Verify</b><span>Call the supplier on the number <em>in your records</em>. Red invoices also need a second person to approve.</span></li>
+        <li><b>5 · Decide</b><span>Approve and pay, or block. Blocking adds the account to the fraud list so it can never be paid.</span></li>
+        <li><b>6 · Audit</b><span>Every step is logged with who, when and why, for auditors and insurers.</span></li>
+      </ol>
+    </section>
+  </main>
+
+  <!-- DETAIL DRAWER -->
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-inner" id="drawerBody"></div>
+  </aside>
+
+  <!-- NEW INVOICE MODAL -->
+  <dialog id="newDialog">
+    <form method="dialog" class="modal" id="newForm">
+      <header><h2>Check an invoice</h2><button class="icon-btn" value="cancel" formnovalidate aria-label="Close">✕</button></header>
+      <div class="seg" role="tablist">
+        <button type="button" class="active" data-mode="manual">Enter details</button>
+        <button type="button" data-mode="upload">Upload PDF</button>
+      </div>
+      <div class="grid2">
+        <label>Supplier name<input name="supplier_name" list="supplierNames" required placeholder="e.g. Nordwind Logistics GmbH"></label>
+        <label class="manual">Amount<input name="amount" type="number" step="0.01" min="0.01" placeholder="0.00"></label>
+        <label class="manual">Invoice number<input name="invoice_number" placeholder="INV-1234"></label>
+        <label class="manual">Currency<input name="currency" value="EUR" maxlength="3"></label>
+        <label class="manual span2">Bank account (IBAN) on the invoice<input name="iban" placeholder="DE89 3704 0044 0532 0130 00"></label>
+        <label class="upload span2" hidden>Invoice file (PDF or .txt)<input name="file" type="file" accept=".pdf,.txt"></label>
+        <label>Sender email<input name="sender_email" type="email" placeholder="billing@supplier.com"></label>
+        <label>Reply-to (if different)<input name="reply_to" type="email" placeholder="optional"></label>
+        <label class="span2">Email message<textarea name="email_body" rows="4" placeholder="Paste the email that came with the invoice"></textarea></label>
+      </div>
+      <datalist id="supplierNames"></datalist>
+      <p class="form-error" id="newError" hidden></p>
+      <footer><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn primary" id="runCheck" value="default">Run checks</button></footer>
+    </form>
+  </dialog>
+
+  <!-- NEW SUPPLIER MODAL -->
+  <dialog id="supplierDialog">
+    <form method="dialog" class="modal" id="supplierForm">
+      <header><h2>Add supplier</h2><button class="icon-btn" value="cancel" formnovalidate aria-label="Close">✕</button></header>
+      <div class="grid2">
+        <label class="span2">Legal name<input name="name" required></label>
+        <label>Country (2 letters)<input name="country" required maxlength="2" placeholder="DE"></label>
+        <label>Email domain<input name="email_domain" required placeholder="supplier.com"></label>
+        <label class="span2">Verified IBAN<input name="verified_iban" placeholder="Confirmed by phone or signed contract"></label>
+        <label class="span2">Call-back phone<input name="verified_phone" placeholder="From the contract or their official website"></label>
+      </div>
+      <p class="form-error" id="supplierError" hidden></p>
+      <footer><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="default">Save supplier</button></footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
